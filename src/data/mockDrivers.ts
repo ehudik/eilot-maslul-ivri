@@ -4,76 +4,127 @@ import { Driver } from '@/types/driver';
 export const mockDrivers: Driver[] = [
   {
     id: 'D001',
-    name: 'יוסי כהן',
+    name: 'דוד כהן',
     status: 'available',
-    location: { lat: 32.0853, lng: 34.7818 },
-    vehicle: { type: 'רכב פרטי', plateNumber: '123-45-678' }
+    location: {
+      lat: 32.0853, // Tel Aviv
+      lng: 34.7818
+    },
+    route: [
+      [32.0853, 34.7818], // Tel Aviv
+      [32.0904, 34.7767],
+      [32.0945, 34.7698],
+      [32.1009, 34.7589]
+    ],
+    vehicle: {
+      type: 'רכב רגיל',
+      plateNumber: '123-45-678'
+    }
   },
   {
-    id: 'D002', 
-    name: 'מרים לוי',
+    id: 'D002',
+    name: 'שרה לוי',
     status: 'on-trip',
-    location: { lat: 32.0944, lng: 34.7767 },
+    location: {
+      lat: 31.7683, // Jerusalem
+      lng: 35.2137
+    },
     route: [
-      [32.0944, 34.7767],
-      [32.0980, 34.7720],
-      [32.1015, 34.7680],
-      [32.1050, 34.7640]
+      [31.7683, 35.2137], // Jerusalem
+      [31.7784, 35.2066],
+      [31.7877, 35.1981]
     ],
-    vehicle: { type: 'מיניבוס', plateNumber: '987-65-432' }
+    vehicle: {
+      type: 'מיניבוס',
+      plateNumber: '789-12-345'
+    }
   },
   {
     id: 'D003',
-    name: 'אבי דוד',
-    status: 'on-break',
-    location: { lat: 32.0750, lng: 34.7900 },
-    vehicle: { type: 'רכב פרטי', plateNumber: '555-44-333' }
+    name: 'מיכאל אברהם',
+    status: 'available',
+    location: {
+      lat: 32.8156, // Haifa
+      lng: 34.9892
+    },
+    vehicle: {
+      type: 'רכב רגיל',
+      plateNumber: '456-78-901'
+    }
   },
   {
     id: 'D004',
-    name: 'שרה אברהם',
-    status: 'available',
-    location: { lat: 32.1000, lng: 34.7600 },
-    vehicle: { type: 'רכב מסחרי', plateNumber: '777-88-999' }
+    name: 'רחל מזרחי',
+    status: 'on-break',
+    location: {
+      lat: 31.2518, // Be'er Sheva
+      lng: 34.7915
+    },
+    vehicle: {
+      type: 'רכב גדול',
+      plateNumber: '234-56-789'
+    }
   },
   {
     id: 'D005',
-    name: 'רמי ישראל',
-    status: 'on-trip',
-    location: { lat: 32.0700, lng: 34.8000 },
+    name: 'יוסי פרידמן',
+    status: 'available',
+    location: {
+      lat: 32.7940, // Nazareth
+      lng: 35.3035
+    },
     route: [
-      [32.0700, 34.8000],
-      [32.0730, 34.7950],
-      [32.0760, 34.7900]
+      [32.7940, 35.3035], // Nazareth
+      [32.8021, 35.2987],
+      [32.8156, 34.9892], // to Haifa
     ],
-    vehicle: { type: 'רכב פרטי', plateNumber: '111-22-333' }
+    vehicle: {
+      type: 'רכב רגיל',
+      plateNumber: '567-89-012'
+    }
   },
   {
     id: 'D006',
-    name: 'דנה מזרחי',
+    name: 'ענת גולדברג',
     status: 'offline',
-    location: { lat: 32.0600, lng: 34.7700 },
-    vehicle: { type: 'רכב פרטי', plateNumber: '444-55-666' }
+    location: {
+      lat: 32.3215, // Netanya
+      lng: 34.8532
+    },
+    vehicle: {
+      type: 'מיניבוס',
+      plateNumber: '890-12-345'
+    }
   },
   {
     id: 'D007',
-    name: 'אלון גולן',
+    name: 'אמיר שפירא',
     status: 'available',
-    location: { lat: 32.1100, lng: 34.7500 },
-    vehicle: { type: 'מיניבוס', plateNumber: '888-99-000' }
+    location: {
+      lat: 31.8969, // Rehovot
+      lng: 34.8186
+    },
+    vehicle: {
+      type: 'רכב רגיל',
+      plateNumber: '345-67-890'
+    }
   },
   {
     id: 'D008',
-    name: 'נועה ברק',
+    name: 'נועה בן דוד',
     status: 'on-trip',
-    location: { lat: 32.0900, lng: 34.7850 },
+    location: {
+      lat: 32.4279, // Kfar Saba
+      lng: 34.9064
+    },
     route: [
-      [32.0900, 34.7850],
-      [32.0920, 34.7800],
-      [32.0940, 34.7750],
-      [32.0960, 34.7700],
-      [32.0980, 34.7650]
+      [32.4279, 34.9064], // Kfar Saba
+      [32.3879, 34.8864],
+      [32.3215, 34.8532], // to Netanya
     ],
-    vehicle: { type: 'רכב פרטי', plateNumber: '222-33-444' }
+    vehicle: {
+      type: 'רכב גדול',
+      plateNumber: '678-90-123'
+    }
   }
 ];

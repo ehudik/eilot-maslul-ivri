@@ -41,21 +41,21 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar className="border-l border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+    <Sidebar side="right" className="border-r border-sidebar-border bg-sidebar-custom">
+      <SidebarHeader className="border-b border-sidebar-border p-4 bg-sidebar-header">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-white">
             <MapPin className="h-4 w-4" />
           </div>
           <div className="grid flex-1 text-right text-sm leading-tight">
-            <span className="truncate font-semibold">מערכת ניהול</span>
-            <span className="truncate text-xs text-sidebar-foreground/70">נהגים ומסלולים</span>
+            <span className="truncate font-semibold text-sidebar-foreground">מערכת ניהול</span>
+            <span className="truncate text-xs text-sidebar-muted">נהגים ומסלולים</span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-sidebar-custom">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-right">תפריט ראשי</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-right text-sidebar-foreground">תפריט ראשי</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -63,9 +63,9 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={location.pathname === item.url}
-                    className="w-full justify-end"
+                    className="w-full justify-end hover:bg-sidebar-hover data-[active=true]:bg-sidebar-active data-[active=true]:text-white"
                   >
-                    <Link to={item.url} className="flex items-center gap-3">
+                    <Link to={item.url} className="flex items-center gap-3 text-sidebar-foreground hover:text-white">
                       <span className="text-right">{item.title}</span>
                       <item.icon className="h-4 w-4" />
                     </Link>
