@@ -22,7 +22,8 @@ export const DriverPanel: React.FC<DriverPanelProps> = ({
     maxDistance: 50,
     minWorkHours: 0,
     maxWorkHours: 24,
-    searchLocation: ''
+    searchLocation: '',
+    driverNameSearch: ''
   });
 
   // Mock function to calculate distance (in real app, this would use actual coordinates)
@@ -41,6 +42,15 @@ export const DriverPanel: React.FC<DriverPanelProps> = ({
   // Filter drivers based on current filters
   const filteredDrivers = useMemo(() => {
     return drivers.filter(driver => {
+      // Driver name search filter
+      if (filters.driverNameSearch) {
+        const searchTerm = filters.driverNameSearch.toLowerCase();
+        const driverName = driver.name.toLowerCase();
+        if (!driverName.includes(searchTerm)) {
+          return false;
+        }
+      }
+
       // Status filter
       if (filters.status !== 'all' && driver.status !== filters.status) {
         return false;
@@ -77,7 +87,8 @@ export const DriverPanel: React.FC<DriverPanelProps> = ({
       maxDistance: 50,
       minWorkHours: 0,
       maxWorkHours: 24,
-      searchLocation: ''
+      searchLocation: '',
+      driverNameSearch: ''
     });
   };
 
@@ -146,6 +157,7 @@ export const DriverPanel: React.FC<DriverPanelProps> = ({
                     
                     <div className="text-sm text-muted-foreground text-right space-y-1">
                       <p>מספר נהג: {driver.id}</p>
+                      <p>סוג רכב: {driver.vehicle?.type}</p>
                       <p>מרחק: {distance} ק"מ</p>
                       <p>שעות עבודה: {workHours} שעות</p>
                       <p>מיקום: {driver.location.lat.toFixed(4)}, {driver.location.lng.toFixed(4)}</p>

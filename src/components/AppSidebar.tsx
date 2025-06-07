@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { MapPin, Route, Users, FileText, Menu } from "lucide-react";
+import { MapPin, Route, Users, FileText, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,18 +21,18 @@ const menuItems = [
     icon: MapPin,
   },
   {
-    title: "חישוב מסלול",
-    url: "/route-calculation",
-    icon: Route,
+    title: "שיבוץ משימות",
+    url: "/task-assignment",
+    icon: ClipboardList,
   },
   {
     title: "ניהול נהגים",
-    url: "#",
+    url: "/driver-management",
     icon: Users,
   },
   {
     title: "דוחות",
-    url: "#",
+    url: "/reports",
     icon: FileText,
   },
 ];
@@ -48,7 +48,7 @@ export function AppSidebar() {
             <MapPin className="h-4 w-4" />
           </div>
           <div className="grid flex-1 text-right text-sm leading-tight">
-            <span className="truncate font-semibold text-sidebar-foreground">מערכת ניהול</span>
+            <span className="truncate font-semibold text-sidebar-foreground">מערכת ניהול צי</span>
             <span className="truncate text-xs text-sidebar-muted">נהגים ומסלולים</span>
           </div>
         </div>

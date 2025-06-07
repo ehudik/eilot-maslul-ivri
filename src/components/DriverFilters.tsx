@@ -13,6 +13,7 @@ export interface DriverFilters {
   minWorkHours: number;
   maxWorkHours: number;
   searchLocation: string;
+  driverNameSearch: string;
 }
 
 interface DriverFiltersProps {
@@ -39,9 +40,22 @@ export const DriverFiltersComponent: React.FC<DriverFiltersProps> = ({
         <CardTitle className="text-right text-lg">סינון נהגים</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Driver Name Search */}
+        <div className="space-y-2">
+          <Label className="text-right block">חיפוש לפי שם נהג</Label>
+          <Input
+            type="text"
+            value={filters.driverNameSearch}
+            onChange={(e) => updateFilter('driverNameSearch', e.target.value)}
+            placeholder="הזן שם נהג"
+            className="text-right"
+            dir="rtl"
+          />
+        </div>
+
         {/* Status Filter */}
         <div className="space-y-2">
-          <Label className="text-right block">סינון לפי זמינות</Label>
+          <Label className="text-right block">סינון לפי סטטוס זמינות</Label>
           <Select 
             value={filters.status} 
             onValueChange={(value) => updateFilter('status', value)}
@@ -59,37 +73,9 @@ export const DriverFiltersComponent: React.FC<DriverFiltersProps> = ({
           </Select>
         </div>
 
-        {/* Location Distance Filter */}
-        <div className="space-y-2">
-          <Label className="text-right block">מרחק מקסימלי (ק"מ)</Label>
-          <Input
-            type="number"
-            value={filters.maxDistance}
-            onChange={(e) => updateFilter('maxDistance', Number(e.target.value))}
-            placeholder="הזן מרחק מקסימלי"
-            className="text-right"
-            dir="rtl"
-            min="0"
-            max="100"
-          />
-        </div>
-
-        {/* Search Location */}
-        <div className="space-y-2">
-          <Label className="text-right block">סינון לפי מיקום יחסי</Label>
-          <Input
-            type="text"
-            value={filters.searchLocation}
-            onChange={(e) => updateFilter('searchLocation', e.target.value)}
-            placeholder="הזן כתובת או אזור"
-            className="text-right"
-            dir="rtl"
-          />
-        </div>
-
         {/* Work Hours Filter */}
         <div className="space-y-3">
-          <Label className="text-right block">סינון לפי שעות עבודה</Label>
+          <Label className="text-right block">סינון לפי שעות עבודה מקסימליות/נוכחיות</Label>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-right block text-sm">מינימום</Label>
@@ -120,10 +106,43 @@ export const DriverFiltersComponent: React.FC<DriverFiltersProps> = ({
           </div>
         </div>
 
+        {/* Location Distance Filter */}
+        <div className="space-y-2">
+          <Label className="text-right block">מרחק מקסימלי (ק"מ)</Label>
+          <Input
+            type="number"
+            value={filters.maxDistance}
+            onChange={(e) => updateFilter('maxDistance', Number(e.target.value))}
+            placeholder="הזן מרחק מקסימלי"
+            className="text-right"
+            dir="rtl"
+            min="0"
+            max="100"
+          />
+        </div>
+
+        {/* Relative Location Search */}
+        <div className="space-y-2">
+          <Label className="text-right block">מיקום יחסי (אופציונלי)</Label>
+          <Input
+            type="text"
+            value={filters.searchLocation}
+            onChange={(e) => updateFilter('searchLocation', e.target.value)}
+            placeholder="הזן כתובת או אזור"
+            className="text-right"
+            dir="rtl"
+          />
+        </div>
+
         {/* Active Filters Display */}
         <div className="space-y-2">
           <Label className="text-right block text-sm">מסננים פעילים:</Label>
           <div className="flex flex-wrap gap-2 justify-end">
+            {filters.driverNameSearch && (
+              <Badge variant="secondary" className="text-xs">
+                שם: {filters.driverNameSearch}
+              </Badge>
+            )}
             {filters.status !== 'all' && (
               <Badge variant="secondary" className="text-xs">
                 סטטוס: {filters.status === 'available' ? 'פנוי' : 
