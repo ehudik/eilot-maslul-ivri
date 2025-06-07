@@ -83,7 +83,7 @@ const DriverManagement = () => {
                               driverTasks.map((task) => (
                                 <div key={task.task_id} className="flex items-center justify-between bg-muted/50 rounded p-2 text-sm">
                                   <div className="flex items-center gap-2">
-                                    <Badge size="sm" variant={getStatusBadgeVariant(task.status)}>
+                                    <Badge variant={getStatusBadgeVariant(task.status)}>
                                       {task.status}
                                     </Badge>
                                     <span className="text-muted-foreground">
