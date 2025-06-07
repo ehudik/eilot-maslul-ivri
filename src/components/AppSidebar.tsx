@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { MapPin, Route, Users, FileText, ClipboardList } from "lucide-react";
+import { MapPin, Route, Users, FileText, ClipboardList, BarChart } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,11 @@ const menuItems = [
     title: "דוחות",
     url: "/reports",
     icon: FileText,
+  },
+  {
+    title: "ניתוח ביצועים",
+    url: "/performance-analytics",
+    icon: BarChart,
   },
 ];
 

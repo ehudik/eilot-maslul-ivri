@@ -10,6 +10,7 @@ import DriverMap from "./pages/DriverMap";
 import TaskAssignment from "./pages/TaskAssignment";
 import DriverManagement from "./pages/DriverManagement";
 import Reports from "./pages/Reports";
+import PerformanceAnalytics from "./pages/PerformanceAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
                 <Route path="/task-assignment" element={<TaskAssignment />} />
                 <Route path="/driver-management" element={<DriverManagement />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/performance-analytics" element={<PerformanceAnalytics />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
