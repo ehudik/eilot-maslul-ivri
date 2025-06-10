@@ -7,7 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AlertCircle, MapPin, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { MapComponent, MapComponentRef, Driver, RideDetails } from '@/components/MapComponent';
+import { MapComponent, MapComponentRef } from '@/components/MapComponent';
+import { Driver, RideDetails } from '@/types/driver';
 
 const RequestRidePage: React.FC = () => {
   const [originAddress, setOriginAddress] = useState('');

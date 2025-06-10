@@ -66,7 +66,6 @@ const RouteCalculation = () => {
             <CardContent className="h-[calc(100%-80px)] p-0">
               <MapComponent 
                 drivers={mockDrivers}
-                calculatedRoute={calculatedRoute}
                 showRouteMode={true}
               />
             </CardContent>
@@ -131,10 +130,10 @@ const RouteCalculation = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {availableDrivers.map((driver) => (
-                <div key={driver.id} className="p-3 border rounded-lg">
+                <div key={driver.driver_id} className="p-3 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <Badge className="status-available">פנוי</Badge>
-                    <h4 className="font-medium text-right">{driver.name}</h4>
+                    <h4 className="font-medium text-right">{driver.driver_name}</h4>
                   </div>
                   <p className="text-sm text-muted-foreground text-right">
                     מרחק מנקודת המוצא: {Math.floor(Math.random() * 5) + 1} ק"מ

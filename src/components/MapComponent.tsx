@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import L from 'leaflet';
-import { Driver } from '@/types/driver';
+import { Driver, RideDetails } from '@/types/driver';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in Leaflet with Webpack
@@ -23,11 +23,7 @@ const ISRAEL_CENTER: L.LatLngExpression = [31.5, 34.8];
 interface MapComponentProps {
   drivers: Driver[];
   selectedDriver?: Driver | null;
-  rideDetails?: {
-    origin_coords: [number, number];
-    destination_coords: [number, number];
-    ride_polyline_coords: [number, number][];
-  } | null;
+  rideDetails?: RideDetails | null;
   showRouteMode?: boolean;
   onDriverLocationUpdate?: (driverId: string, lat: number, lng: number) => void;
 }
@@ -35,6 +31,9 @@ interface MapComponentProps {
 export interface MapComponentRef {
   fitBoundsToContent: () => void;
 }
+
+// Export the types for use in other components
+export type { Driver, RideDetails };
 
 export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({ 
   drivers, 
