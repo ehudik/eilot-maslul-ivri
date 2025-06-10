@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import * as React from "react"
+import { Car, Map, Users, BarChart3, PlusCircle, Home, FileText, TrendingUp, Calendar, Navigation } from "lucide-react"
+
 import {
   Sidebar,
   SidebarContent,
@@ -8,31 +9,27 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
 } from "@/components/ui/sidebar"
-import { 
-  Home, 
-  Map, 
-  Users, 
-  FileText, 
-  BarChart3, 
-  Car,
-  LogIn,
-  Settings,
-  HelpCircle
-} from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom"
 
-const menuItems = [
+// Menu items
+const items = [
   {
-    title: "עמוד הבית",
+    title: "דף הבית",
     url: "/",
     icon: Home,
   },
   {
-    title: "לוח בקרה",
+    title: "מרכז בקרת נסיעות",
+    url: "/trip-control-center",
+    icon: Navigation,
+  },
+  {
+    title: "מפת נהגים",
     url: "/driver-map",
     icon: Map,
   },
@@ -42,104 +39,73 @@ const menuItems = [
     icon: Users,
   },
   {
-    title: "דוחות",
+    title: "בקשת נסיעה",
+    url: "/request-ride",
+    icon: PlusCircle,
+  },
+  {
+    title: "דוחות מתקדמים",
     url: "/reports",
     icon: FileText,
   },
   {
     title: "ניתוח ביצועים",
     url: "/performance-analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "בקשת נסיעה",
-    url: "/request-ride",
-    icon: Car,
-  },
-];
-
-const bottomMenuItems = [
-  {
-    title: "התחברות",
-    url: "/login",
-    icon: LogIn,
-  },
-  {
-    title: "הגדרות",
-    url: "/settings",
-    icon: Settings,
-  },
-  {
-    title: "עזרה",
-    url: "/help",
-    icon: HelpCircle,
-  },
-];
+    icon: TrendingUp,
+  }
+]
 
 export function AppSidebar() {
-  const location = useLocation();
-
-  const isActive = (url: string) => {
-    if (url === "/" && location.pathname === "/") return true;
-    if (url !== "/" && location.pathname.startsWith(url)) return true;
-    return false;
-  };
+  const navigate = useNavigate()
+  const location = useLocation()
 
   return (
-    <Sidebar className="border-l border-border/40">
-      <SidebarHeader className="p-6 border-b border-border/40">
+    <Sidebar className="border-l">
+      <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <Car className="h-6 w-6 text-primary" />
+          <div className="bg-primary p-2 rounded-lg">
+            <Car className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="text-right">
-            <h2 className="text-lg font-semibold text-foreground">מערכת ניהול צי</h2>
-            <p className="text-sm text-muted-foreground">מוני סיטון בע״מ</p>
+            <h2 className="text-xl font-bold">FleetPro</h2>
+            <p className="text-sm text-muted-foreground">מערכת ניהול צי</p>
           </div>
         </div>
       </SidebarHeader>
-      
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-right text-muted-foreground">תפריט ראשי</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-right">ניווט ראשי</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive(item.url)}
-                    className="text-right hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-sm font-medium">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = location.pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      className="justify-end hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <button
+                        onClick={() => navigate(item.url)}
+                        className="flex items-center gap-3 w-full px-3 py-2 text-right"
+                      >
+                        <span>{item.title}</span>
+                        <item.icon className="h-4 w-4" />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="p-4 border-t border-border/40">
-        <SidebarMenu>
-          {bottomMenuItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton 
-                asChild 
-                isActive={isActive(item.url)}
-                className="text-right hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <Link to={item.url} className="flex items-center gap-3">
-                  <item.icon className="h-4 w-4" />
-                  <span className="text-xs">{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+      <SidebarFooter className="p-6">
+        <div className="text-center text-sm text-muted-foreground">
+          <p>FleetPro v2.0</p>
+          <p>מערכת ניהול צי מתקדמת</p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   )

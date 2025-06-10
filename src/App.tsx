@@ -13,6 +13,9 @@ import DriverManagement from "./pages/DriverManagement";
 import Reports from "./pages/Reports";
 import PerformanceAnalytics from "./pages/PerformanceAnalytics";
 import RequestRide from "./pages/RequestRide";
+import TripControlCenter from "./pages/TripControlCenter";
+import TripDetails from "./pages/TripDetails";
+import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
 import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
@@ -54,6 +57,18 @@ const router = createBrowserRouter([
         element: <HomePage />
       },
       {
+        path: "/trip-control-center",
+        element: <TripControlCenter />
+      },
+      {
+        path: "/trip-details/:tripId",
+        element: <TripDetails />
+      },
+      {
+        path: "/customer-profile/:customerId",
+        element: <CustomerProfile />
+      },
+      {
         path: "/DriverMap",
         element: <DriverMap />
       },
@@ -67,6 +82,10 @@ const router = createBrowserRouter([
       },
       {
         path: "/driver-management", 
+        element: <DriverManagement />
+      },
+      {
+        path: "/driver-details/:driverId",
         element: <DriverManagement />
       },
       {
