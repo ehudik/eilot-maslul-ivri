@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, FileText, Download, TrendingUp, Clock, Users, Car, AlertTriangle, CheckCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { mockDrivers } from "@/data/mockDrivers";
-import { mockDriverWorkHours } from "@/data/mockDriverWorkHours";
 
 const Reports = () => {
   const [currentTime] = useState(new Date());
@@ -263,16 +262,22 @@ const Reports = () => {
                       <span className="text-sm text-muted-foreground">סטטוס</span>
                       <Badge variant={driver.status === 'available' ? 'default' : 'secondary'}>
                         {driver.status === 'available' ? 'זמין' : 
-                         driver.status === 'busy' ? 'עסוק' : 'לא זמין'}
+                         driver.status === 'busy' ? 'עסוק' : 
+                         driver.status === 'on-trip' ? 'בנסיעה' :
+                         driver.status === 'on-break' ? 'בהפסקה' : 'לא זמין'}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">רכב</span>
-                      <span className="text-sm">{driver.vehicle?.license_plate}</span>
+                      <span className="text-sm text-muted-foreground">סוג רכב</span>
+                      <span className="text-sm">{driver.vehicle?.type || 'לא מוגדר'}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">דירוג</span>
-                      <span className="text-sm font-semibold">{driver.rating}/5</span>
+                      <span className="text-sm text-muted-foreground">קיבולת</span>
+                      <span className="text-sm font-semibold">{driver.vehicle?.capacity || 0} נוסעים</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">מיקום</span>
+                      <span className="text-sm text-muted-foreground truncate">{driver.address}</span>
                     </div>
                   </CardContent>
                 </Card>
