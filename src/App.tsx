@@ -48,7 +48,15 @@ const router = createBrowserRouter([
         element: <DriverMap />
       },
       {
+        path: "/driver-map",
+        element: <DriverMap />
+      },
+      {
         path: "/DriverManagement", 
+        element: <DriverManagement />
+      },
+      {
+        path: "/driver-management", 
         element: <DriverManagement />
       },
       {
@@ -56,11 +64,23 @@ const router = createBrowserRouter([
         element: <Reports />
       },
       {
+        path: "/reports",
+        element: <Reports />
+      },
+      {
         path: "/PerformanceAnalytics",
         element: <PerformanceAnalytics />
       },
       {
+        path: "/performance-analytics",
+        element: <PerformanceAnalytics />
+      },
+      {
         path: "/RequestRide",
+        element: <RequestRide />
+      },
+      {
+        path: "/request-ride",
         element: <RequestRide />
       },
       {
