@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 // Import all page components
@@ -27,7 +27,11 @@ const RootLayout = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden" dir="rtl">
-        <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-muted/20">
+        <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-muted/20 relative">
+          {/* Sidebar trigger button - always visible */}
+          <div className="fixed top-4 right-4 z-50">
+            <SidebarTrigger className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg border border-primary/20" />
+          </div>
           <div className="h-full w-full">
             <Outlet />
           </div>
