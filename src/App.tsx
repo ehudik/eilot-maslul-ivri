@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,12 +9,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 
 // Import all page components
 import DriverMap from "./pages/DriverMap";
-import TaskAssignment from "./pages/TaskAssignment";
 import DriverManagement from "./pages/DriverManagement";
 import Reports from "./pages/Reports";
 import PerformanceAnalytics from "./pages/PerformanceAnalytics";
 import RequestRide from "./pages/RequestRide";
 import NotFound from "./pages/NotFound";
+import HomePage from "./pages/HomePage";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,7 @@ const RootLayout = () => {
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 overflow-auto p-4 bg-gray-50">
+        <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-muted/20">
           <div className="h-full w-full">
             <Outlet />
           </div>
@@ -40,14 +41,14 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
+        element: <HomePage />
+      },
+      {
+        path: "/DriverMap",
         element: <DriverMap />
       },
       {
-        path: "/TaskAssignment",
-        element: <TaskAssignment />
-      },
-      {
-        path: "/DriverManagement",
+        path: "/DriverManagement", 
         element: <DriverManagement />
       },
       {
