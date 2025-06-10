@@ -50,9 +50,11 @@ const DriverManagement = () => {
   const getTaskPosition = (startTime: string) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const startHour = hours + minutes / 60;
-    // Position relative to 6:00 AM start
-    const position = ((startHour - 6) / 18) * 100;
-    return Math.max(0, Math.min(100, position));
+    // Calculate position from the start (6:00 AM = 0%, 24:00 = 100%)
+    // For RTL layout, we need to calculate from right side
+    const positionFromLeft = ((startHour - 6) / 18) * 100;
+    // Since we're RTL, we need to flip it: right position = 100% - left position
+    return 100 - positionFromLeft;
   };
 
   const getTaskWidth = (startTime: string, endTime: string) => {
@@ -65,7 +67,19 @@ const DriverManagement = () => {
     
     // Width as percentage of the 18-hour timeline
     const width = (durationHours / 18) * 100;
-    return Math.max(2, Math.min(50, width)); // Minimum 2%, maximum 50%
+    return Math.max(1, Math.min(50, width)); // Minimum 1%, maximum 50%
+  };
+
+  const getTaskRightPosition = (startTime: string, endTime: string) => {
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const startTotal = startHours + startMinutes / 60;
+    
+    // Position from the right side (RTL)
+    const positionFromLeft = ((startTotal - 6) / 18) * 100;
+    const width = getTaskWidth(startTime, endTime);
+    
+    // For RTL: right position should be calculated from the right edge
+    return 100 - positionFromLeft - width;
   };
 
   if (isLoading) {
@@ -155,13 +169,13 @@ const DriverManagement = () => {
                                 key={task.task_id}
                                 className="absolute top-2 bottom-2 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
                                 style={{
-                                  right: `${100 - getTaskPosition(task.start_time) - getTaskWidth(task.start_time, task.end_time)}%`,
+                                  right: `${getTaskRightPosition(task.start_time, task.end_time)}%`,
                                   width: `${getTaskWidth(task.start_time, task.end_time)}%`,
                                 }}
                               >
                                 <div className="p-2 text-xs h-full flex flex-col justify-center">
-                                  <div className="font-medium truncate">{task.task_name}</div>
-                                  <div className="text-muted-foreground text-xs">
+                                  <div className="font-medium truncate text-right">{task.task_name}</div>
+                                  <div className="text-muted-foreground text-xs text-right">
                                     {task.start_time} - {task.end_time}
                                   </div>
                                 </div>
