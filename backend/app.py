@@ -852,9 +852,11 @@ def autocomplete_address():
 
 @app.route('/api/request_ride', methods=['POST'])
 def request_ride():
-    logger.info("Received request to /api/request_ride")
+    logger.info("Request to /api/request_ride received.")
     try:
         data = request.get_json()
+        logger.info(f"Received ride data: {data}")
+        
         ride_id = f"ride_{len(mock_rides_data) + 1}"
         origin_address = data.get('origin_address')
         destination_address = data.get('destination_address')
@@ -865,15 +867,22 @@ def request_ride():
         recurring_days = data.get('recurring_days', []) if is_recurring else []
 
         if not all([origin_address, destination_address, required_arrival_time_str, num_passengers, client_name]):
+            logger.error("Missing required ride parameters.")
             return jsonify({"error": "חסרים שדות חובה בבקשת נסיעה"}), 400
         
+        logger.info(f"Geocoding origin address: {origin_address}")
         origin_coords = get_coordinates(origin_address)
+        logger.info(f"Origin coords: {origin_coords}")
+        
+        logger.info(f"Geocoding destination address: {destination_address}")
         destination_coords = get_coordinates(destination_address)
+        logger.info(f"Destination coords: {destination_coords}")
 
         if not origin_coords or not destination_coords:
             logger.error(f"REQUEST_RIDE: Failed to geocode origin ({origin_address}) or destination ({destination_address}).")
             return jsonify({"error": "כתובת מוצא או יעד לא נמצאה"}), 400
 
+        logger.info(f"Calculating ride polyline from {origin_coords} to {destination_coords}")
         directions_info = get_directions_polyline(origin_coords, destination_coords)
         if not directions_info:
             logger.error(f"REQUEST_RIDE: Failed to get directions for ride from {origin_address} to {destination_address}.")
@@ -919,104 +928,92 @@ def request_ride():
         mock_rides_data[ride_id] = new_ride
         logger.info(f"REQUEST_RIDE: New ride {ride_id} created and stored.")
 
-        suggestion_payload = {
-            "task_id": ride_id,
-            "task_address": origin_address,
-            "task_start_time_iso": estimated_start_time_iso,
-            "task_end_time_iso": estimated_end_time_iso,
-            "exclude_driver_ids": []
-        }
-        suggested_drivers_response = suggest_alternative_drivers_internal(suggestion_payload)
+        # Process suggested drivers directly within request_ride
+        suggested_drivers = []
+        current_day_of_week = datetime.now().strftime('%A')
         
-        if suggested_drivers_response.get("error"):
-             logger.warning(f"REQUEST_RIDE: Failed to get driver suggestions: {suggested_drivers_response.get('error')}")
-             return jsonify({
-                "ride_id": ride_id,
-                "message": "בקשה נרשמה בהצלחה, אך לא ניתן היה להציע נהגים כרגע.",
-                "details": "כשל בהצעת נהגים",
-                "suggested_drivers": []
-            }), 200
+        logger.info("Starting to evaluate suggested drivers.")
+        for driver_id, driver_info in mock_drivers_data.items():
+            if not driver_info.get('is_available', False):
+                continue
 
+            driver_start_coords = get_coordinates(driver_info['base_address'])
+            if not driver_start_coords:
+                logger.warning(f"Cannot geocode driver {driver_id} base address {driver_info['base_address']}.")
+                continue
+
+            logger.info(f"Evaluating driver {driver_info['name']} from {driver_start_coords} to origin {origin_coords}")
+            directions_info = get_directions_polyline(driver_start_coords, origin_coords)
+            
+            distance_to_start_km = 0
+            time_to_start_minutes = 0
+            polyline_to_origin_coords = []
+            
+            if directions_info:
+                distance_to_start_km = round(directions_info['distance_meters'] / 1000, 2)
+                time_to_start_minutes = round(directions_info['duration_seconds'] / 60, 2)
+                polyline_to_origin_coords = directions_info.get('polyline_coords', [])
+                logger.info(f"Driver {driver_info['name']} to origin: {time_to_start_minutes} min, {distance_to_start_km} km.")
+            else:
+                logger.warning(f"Could not get distance/time for driver {driver_info['name']} to origin. Using approximate values.")
+                dist_approx = math.sqrt(
+                    ((driver_start_coords[0] - origin_coords[0]) * 111.32)**2 + 
+                    ((driver_start_coords[1] - origin_coords[1]) * 111.32 * math.cos(math.radians(driver_start_coords[0])))**2
+                )
+                distance_to_start_km = round(dist_approx, 2)
+                time_to_start_minutes = round(dist_approx / 0.8, 2)
+            
+            task_duration_minutes_mock = 30
+            total_ride_time_for_driver = time_to_start_minutes + task_duration_minutes_mock
+            
+            current_daily_work_minutes = sum([entry.get('duration_minutes', 0) for entry in driver_info['schedule'].get(current_day_of_week, [])])
+            can_fit_in_schedule = (current_daily_work_minutes + total_ride_time_for_driver) <= (driver_info['max_daily_hours'] * 60)
+            
+            if can_fit_in_schedule:
+                suggested_drivers.append({
+                    "driver_id": driver_info['id'],
+                    "driver_name": driver_info['name'],
+                    "address": driver_info['base_address'],
+                    "latitude": driver_start_coords[0],
+                    "longitude": driver_start_coords[1],
+                    "status": "available",
+                    "vehicle": {
+                        "type": "sedan",
+                        "capacity": 4
+                    },
+                    "distance_to_start_km": distance_to_start_km,
+                    "time_to_start_minutes": time_to_start_minutes,
+                    "polyline_to_origin_coords": polyline_to_origin_coords
+                })
+
+        logger.info(f"Initial list of potential suggested drivers: {len(suggested_drivers)} drivers.")
+        
+        # Sort by distance and limit to top 5
+        suggested_drivers.sort(key=lambda x: x['distance_to_start_km'])
+        suggested_drivers = suggested_drivers[:5]
+        
+        logger.info(f"Final suggested drivers (top 5): {[d['driver_name'] for d in suggested_drivers]}")
+
+        ride_details = {
+            "origin_coords": origin_coords,
+            "destination_coords": destination_coords,
+            "ride_polyline_coords": ride_polyline_coords,
+            "estimated_start_time_iso": estimated_start_time_iso,
+            "estimated_end_time_iso": estimated_end_time_iso,
+            "estimated_travel_time_seconds": estimated_travel_time_seconds
+        }
+
+        logger.info("Ride request processed successfully and response prepared.")
         return jsonify({
             "ride_id": ride_id,
             "message": "בקשה נרשמה בהצלחה. הנהגים המומלצים:",
-            "suggested_drivers": suggested_drivers_response.get('alternative_drivers', []),
-            "ride_details": {
-                "origin_coords": origin_coords,
-                "destination_coords": destination_coords,
-                "ride_polyline_coords": ride_polyline_coords,
-                "estimated_start_time_iso": estimated_start_time_iso,
-                "estimated_end_time_iso": estimated_end_time_iso,
-                "estimated_travel_time_seconds": estimated_travel_time_seconds
-            }
+            "suggested_drivers": suggested_drivers,
+            "ride_details": ride_details
         })
 
     except Exception as e:
-        logger.error(f"REQUEST_RIDE: Unexpected error: {e}", exc_info=True)
+        logger.exception("Failed to process ride request due to unexpected error.")
         return jsonify({"error": "Failed to process ride request due to unexpected error", "details": str(e)}), 500
-
-def suggest_alternative_drivers_internal(payload: Dict) -> Dict:
-    task_id = payload.get('task_id')
-    task_address = payload.get('task_address')
-    task_start_time_iso = payload.get('task_start_time_iso')
-    task_end_time_iso = payload.get('task_end_time_iso')
-    exclude_driver_ids = payload.get('exclude_driver_ids', [])
-
-    alternative_drivers = []
-    task_coords = get_coordinates(task_address)
-    if not task_coords:
-        return {"error": "Could not geocode task address for suggestions (internal)"}
-
-    current_day_of_week = datetime.now().strftime('%A') 
-
-    for driver_id, driver_info in mock_drivers_data.items():
-        if driver_id in exclude_driver_ids or not driver_info.get('is_available', False):
-            continue
-        
-        driver_start_coords = get_coordinates(driver_info['base_address'])
-        if not driver_start_coords:
-            logger.warning(f"SUGGEST_INTERNAL: Cannot geocode driver {driver_id} base address {driver_info['base_address']}.")
-            continue
-
-        directions_info = get_directions_polyline(driver_start_coords, task_coords)
-        distance_to_start_km = 0
-        time_to_start_minutes = 0
-        if directions_info:
-            distance_to_start_km = round(directions_info['distance_meters'] / 1000, 2)
-            time_to_start_minutes = round(directions_info['duration_seconds'] / 60, 2)
-        else:
-            dist_approx = math.sqrt(
-                ((driver_start_coords[0] - task_coords[0]) * 111.32)**2 + 
-                ((driver_start_coords[1] - task_coords[1]) * 111.32 * math.cos(math.radians(driver_start_coords[0])))**2
-            )
-            distance_to_start_km = round(dist_approx, 2)
-            time_to_start_minutes = round(dist_approx / 0.8, 2)
-            
-        task_duration_minutes_mock = 30
-        total_ride_time_for_driver = time_to_start_minutes + task_duration_minutes_mock
-        
-        current_daily_work_minutes = sum([entry.get('duration_minutes', 0) for entry in driver_info['schedule'].get(current_day_of_week, [])])
-        
-        can_fit_in_schedule = (current_daily_work_minutes + total_ride_time_for_driver) <= (driver_info['max_daily_hours'] * 60)
-
-        is_available_for_slot = driver_info.get('is_available', False) and can_fit_in_schedule
-        
-        if is_available_for_slot:
-            alternative_drivers.append({
-                "driver_id": driver_info['id'],
-                "driver_name": driver_info['name'],
-                "is_available_for_slot": is_available_for_slot,
-                "distance_to_start_km": distance_to_start_km,
-                "time_to_start_minutes": time_to_start_minutes,
-                "base_address_coords": driver_start_coords # ADDED: driver's base address coordinates
-            })
-    
-    alternative_drivers.sort(key=lambda x: (not x['is_available_for_slot'], x['distance_to_start_km']))
-
-    return {
-        "alternative_drivers": alternative_drivers[:5],
-        "message": "הנה 5 הנהגים המומלצים ביותר (פנימי)."
-    }
 
 @app.route('/api/assign_ride', methods=['POST'])
 def assign_ride():

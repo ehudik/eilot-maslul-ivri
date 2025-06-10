@@ -1,7 +1,7 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import L from 'leaflet';
 import { Driver } from '@/types/driver';
+import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in Leaflet with Webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,22 +23,41 @@ const ISRAEL_CENTER: L.LatLngExpression = [31.5, 34.8];
 interface MapComponentProps {
   drivers: Driver[];
   selectedDriver?: Driver | null;
-  calculatedRoute?: any;
+  rideDetails?: {
+    origin_coords: [number, number];
+    destination_coords: [number, number];
+    ride_polyline_coords: [number, number][];
+  } | null;
   showRouteMode?: boolean;
   onDriverLocationUpdate?: (driverId: string, lat: number, lng: number) => void;
 }
 
-export const MapComponent: React.FC<MapComponentProps> = ({ 
+export interface MapComponentRef {
+  fitBoundsToContent: () => void;
+}
+
+export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({ 
   drivers, 
   selectedDriver, 
-  calculatedRoute,
+  rideDetails,
   showRouteMode = false,
   onDriverLocationUpdate 
-}) => {
+}, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const routeLayerRef = useRef<L.Polyline | null>(null);
+  const driverRouteLayersRef = useRef<{ [key: string]: L.Polyline }>({});
+
+  // Function to check if coordinates are valid numbers
+  const isValidCoordinate = (lat: any, lng: any): boolean => {
+    return typeof lat === 'number' && 
+           typeof lng === 'number' && 
+           !isNaN(lat) && 
+           !isNaN(lng) && 
+           isFinite(lat) && 
+           isFinite(lng);
+  };
 
   // Function to check if coordinates are within Israel bounds
   const isWithinIsrael = (lat: number, lng: number): boolean => {
@@ -59,15 +78,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     return [adjustedLat, adjustedLng];
   };
 
+  // Function to safely create a LatLng object
+  const safeCreateLatLng = (lat: number, lng: number): L.LatLng | null => {
+    if (!isValidCoordinate(lat, lng)) return null;
+    const [adjustedLat, adjustedLng] = adjustToIsraelLand(lat, lng);
+    return L.latLng(adjustedLat, adjustedLng);
+  };
+
+  // Initialize map
   useEffect(() => {
     if (!mapRef.current) return;
 
     // Initialize map with Israel focus
-    mapInstanceRef.current = L.map(mapRef.current).setView(ISRAEL_CENTER, 8);
-
-    // Set max bounds to Israel
-    mapInstanceRef.current.setMaxBounds(ISRAEL_BOUNDS);
-    mapInstanceRef.current.setMinZoom(7);
+    mapInstanceRef.current = L.map(mapRef.current, {
+      center: ISRAEL_CENTER,
+      zoom: 8,
+      minZoom: 7,
+      maxBounds: ISRAEL_BOUNDS,
+      maxBoundsViscosity: 1.0
+    });
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -83,29 +112,43 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     };
   }, []);
 
-  // Update driver markers
+  // Update map content (markers, routes, etc.)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
-    // Clear existing markers
+    // Clear existing markers and routes
     Object.values(markersRef.current).forEach(marker => {
       mapInstanceRef.current!.removeLayer(marker);
     });
     markersRef.current = {};
 
+    Object.values(driverRouteLayersRef.current).forEach(layer => {
+      mapInstanceRef.current!.removeLayer(layer);
+    });
+    driverRouteLayersRef.current = {};
+
+    if (routeLayerRef.current) {
+      mapInstanceRef.current.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
+
     // Add driver markers
     drivers.forEach(driver => {
-      // Ensure driver location is within Israel
+      if (!isValidCoordinate(driver.latitude, driver.longitude)) {
+        console.warn(`Invalid coordinates for driver ${driver.driver_id}`);
+        return;
+      }
+
       const [adjustedLat, adjustedLng] = adjustToIsraelLand(
-        driver.location.lat, 
-        driver.location.lng
+        driver.latitude,
+        driver.longitude
       );
 
       const icon = L.divIcon({
         html: `
-          <div class="driver-marker ${driver.status === 'available' ? 'bg-green-500' : driver.status === 'on-trip' ? 'bg-blue-500' : 'bg-yellow-500'} 
+          <div class="driver-marker ${driver.status === 'available' ? 'bg-green-500' : 'bg-yellow-500'} 
                       text-white rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold shadow-lg border-2 border-white">
-            ${driver.name.charAt(0)}
+            ${driver.driver_name.charAt(0)}
           </div>
         `,
         className: 'custom-div-icon',
@@ -117,93 +160,127 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         .addTo(mapInstanceRef.current!)
         .bindPopup(`
           <div dir="rtl" class="text-right">
-            <h3 class="font-bold">${driver.name}</h3>
+            <h3 class="font-bold">${driver.driver_name}</h3>
             <p class="text-sm">סטטוס: ${getStatusInHebrew(driver.status)}</p>
-            <p class="text-sm">מספר נהג: ${driver.id}</p>
+            <p class="text-sm">מספר נהג: ${driver.driver_id}</p>
             <p class="text-sm">מיקום: ${adjustedLat.toFixed(4)}, ${adjustedLng.toFixed(4)}</p>
           </div>
         `);
 
-      markersRef.current[driver.id] = marker;
+      markersRef.current[driver.driver_id] = marker;
+
+      // Add driver route to origin if available and showRouteMode is true
+      if (showRouteMode && driver.polyline_to_origin_coords && Array.isArray(driver.polyline_to_origin_coords)) {
+        const validCoords = driver.polyline_to_origin_coords
+          .map(coord => {
+            if (Array.isArray(coord) && isValidCoordinate(coord[0], coord[1])) {
+              return adjustToIsraelLand(coord[0], coord[1]);
+            }
+            return null;
+          })
+          .filter((coord): coord is [number, number] => coord !== null);
+
+        if (validCoords.length > 1) {
+          driverRouteLayersRef.current[driver.driver_id] = L.polyline(validCoords, {
+            color: '#3b82f6',
+            weight: 3,
+            opacity: 0.6,
+            dashArray: '5, 10'
+          }).addTo(mapInstanceRef.current!);
+        }
+      }
     });
-  }, [drivers]);
+
+    // Add main ride route if available
+    if (rideDetails?.ride_polyline_coords && Array.isArray(rideDetails.ride_polyline_coords)) {
+      const validCoords = rideDetails.ride_polyline_coords
+        .map(coord => {
+          if (Array.isArray(coord) && isValidCoordinate(coord[0], coord[1])) {
+            return adjustToIsraelLand(coord[0], coord[1]);
+          }
+          return null;
+        })
+        .filter((coord): coord is [number, number] => coord !== null);
+
+      if (validCoords.length > 1) {
+        routeLayerRef.current = L.polyline(validCoords, {
+          color: '#ef4444',
+          weight: 5,
+          opacity: 0.8
+        }).addTo(mapInstanceRef.current!);
+      }
+    }
+
+  }, [drivers, rideDetails, showRouteMode]);
 
   // Handle selected driver
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedDriver) return;
 
-    const marker = markersRef.current[selectedDriver.id];
+    const marker = markersRef.current[selectedDriver.driver_id];
     if (marker) {
       mapInstanceRef.current.setView(marker.getLatLng(), 12);
       marker.openPopup();
-      
-      // Show mock route for selected driver
-      if (selectedDriver.route && selectedDriver.route.length > 0) {
-        // Clear existing route
-        if (routeLayerRef.current) {
-          mapInstanceRef.current.removeLayer(routeLayerRef.current);
-        }
-        
-        // Ensure all route points are within Israel
-        const adjustedRoute = selectedDriver.route.map(point => 
-          adjustToIsraelLand(point[0], point[1])
-        );
-        
-        // Add route polyline
-        routeLayerRef.current = L.polyline(adjustedRoute, {
-          color: '#3b82f6',
-          weight: 4,
-          opacity: 0.8
-        }).addTo(mapInstanceRef.current);
-        
-        // Add route stops
-        adjustedRoute.forEach((point, index) => {
-          const stopIcon = L.divIcon({
-            html: `<div class="bg-white border-2 border-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-blue-500">${index + 1}</div>`,
-            className: 'custom-stop-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
-          
-          L.marker(point, { icon: stopIcon })
-            .addTo(mapInstanceRef.current!)
-            .bindPopup(`<div dir="rtl" class="text-right">תחנה ${index + 1}</div>`);
-        });
-      }
     }
   }, [selectedDriver]);
 
-  // Handle calculated route
-  useEffect(() => {
-    if (!mapInstanceRef.current || !calculatedRoute) return;
+  // Expose fitBoundsToContent method
+  useImperativeHandle(ref, () => ({
+    fitBoundsToContent: () => {
+      if (!mapInstanceRef.current) return;
 
-    // Clear existing route
-    if (routeLayerRef.current) {
-      mapInstanceRef.current.removeLayer(routeLayerRef.current);
+      const allLatLngs: L.LatLng[] = [];
+
+      // Add ride origin and destination
+      if (rideDetails?.origin_coords && Array.isArray(rideDetails.origin_coords)) {
+        const originLatLng = safeCreateLatLng(rideDetails.origin_coords[0], rideDetails.origin_coords[1]);
+        if (originLatLng) allLatLngs.push(originLatLng);
+      }
+
+      if (rideDetails?.destination_coords && Array.isArray(rideDetails.destination_coords)) {
+        const destLatLng = safeCreateLatLng(rideDetails.destination_coords[0], rideDetails.destination_coords[1]);
+        if (destLatLng) allLatLngs.push(destLatLng);
+      }
+
+      // Add driver locations
+      drivers.forEach(driver => {
+        if (isValidCoordinate(driver.latitude, driver.longitude)) {
+          const driverLatLng = safeCreateLatLng(driver.latitude, driver.longitude);
+          if (driverLatLng) allLatLngs.push(driverLatLng);
+        }
+      });
+
+      // Add polyline coordinates
+      if (rideDetails?.ride_polyline_coords && Array.isArray(rideDetails.ride_polyline_coords)) {
+        rideDetails.ride_polyline_coords.forEach(coord => {
+          if (Array.isArray(coord) && isValidCoordinate(coord[0], coord[1])) {
+            const polylineLatLng = safeCreateLatLng(coord[0], coord[1]);
+            if (polylineLatLng) allLatLngs.push(polylineLatLng);
+          }
+        });
+      }
+
+      // Add driver route coordinates if showRouteMode is true
+      if (showRouteMode) {
+        drivers.forEach(driver => {
+          if (driver.polyline_to_origin_coords && Array.isArray(driver.polyline_to_origin_coords)) {
+            driver.polyline_to_origin_coords.forEach(coord => {
+              if (Array.isArray(coord) && isValidCoordinate(coord[0], coord[1])) {
+                const routeLatLng = safeCreateLatLng(coord[0], coord[1]);
+                if (routeLatLng) allLatLngs.push(routeLatLng);
+              }
+            });
+          }
+        });
+      }
+
+      // Only fit bounds if we have valid coordinates
+      if (allLatLngs.length > 0) {
+        const bounds = L.latLngBounds(allLatLngs);
+        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      }
     }
-
-    // Ensure calculated route points are within Israel
-    const adjustedPolyline = calculatedRoute.polyline.map((point: [number, number]) => 
-      adjustToIsraelLand(point[0], point[1])
-    );
-
-    // Add calculated route
-    routeLayerRef.current = L.polyline(adjustedPolyline, {
-      color: '#ef4444',
-      weight: 5,
-      opacity: 0.8
-    }).addTo(mapInstanceRef.current);
-
-    // Fit map to route bounds within Israel
-    if (adjustedPolyline.length > 0) {
-      const group = new L.FeatureGroup([routeLayerRef.current]);
-      const bounds = group.getBounds();
-      
-      // Ensure bounds are within Israel
-      const constrainedBounds = bounds.intersect(L.latLngBounds(ISRAEL_BOUNDS));
-      mapInstanceRef.current.fitBounds(constrainedBounds.pad(0.1));
-    }
-  }, [calculatedRoute]);
+  }));
 
   const getStatusInHebrew = (status: string) => {
     switch (status) {
@@ -215,5 +292,5 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     }
   };
 
-  return <div ref={mapRef} className="h-full w-full rounded-lg" />;
-};
+  return <div ref={mapRef} className="h-full w-full" />;
+});

@@ -77,14 +77,14 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={location.pathname === item.url} // חזרה ל-location.pathname
-                    className="w-full justify-end hover:bg-sidebar-hover/80 data-[active=true]:bg-gradient-to-l data-[active=true]:from-sidebar-active data-[active=true]:to-sidebar-active/80 data-[active=true]:text-white rounded-xl p-4 transition-all duration-300 hover:shadow-md data-[active=true]:shadow-lg"
+                    className="w-full justify-end hover:bg-sidebar-hover/80 data-[active=true]:bg-gradient-to-l data-[active=true]:from-sidebar-active data-[active=true]:to-sidebar-active/80 data-[active=true]:text-gray-900 rounded-xl p-4 transition-all duration-300 hover:shadow-md data-[active=true]:shadow-lg"
                   >
-                    <Link to={item.url} className="flex items-center gap-4 text-sidebar-foreground hover:text-white data-[active=true]:text-white w-full">
+                    <Link to={item.url} className="flex items-center gap-4 text-sidebar-foreground hover:text-white data-[active=true]:text-gray-900 w-full">
                       <div className="text-right flex-1">
                         <div className="font-semibold">{item.title}</div>
                         <div className="text-xs opacity-75">{item.description}</div>
                       </div>
-                      <div className="bg-white/10 p-2 rounded-lg">
+                      <div className="bg-white/10 p-2 rounded-lg data-[active=true]:bg-gray-900/10">
                         <item.icon className="h-5 w-5" />
                       </div>
                     </Link>

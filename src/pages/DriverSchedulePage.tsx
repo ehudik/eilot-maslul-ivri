@@ -1,49 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Driver } from "@/types/driver";
+import { MapPin, Car, User, Calendar } from "lucide-react";
 
-// --- START: ROBUST FIX for default Leaflet icon loading issues ---
-// First, ensure we have a clean slate by removing any existing icon definitions
-if (L.Icon.Default.prototype._getIconUrl) {
-  delete L.Icon.Default.prototype._getIconUrl;
-}
-
-// Create a new default icon with explicit CDN paths
-const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+// Fix for default marker icons
+const defaultIcon = new L.Icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
 });
 
-// Set this as the default icon for all markers
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Define custom icons with explicit error handling
-const createCustomIcon = (color: string, text: string) => {
-  try {
-    return L.icon({
-      iconUrl: `https://placehold.co/25x25/${color}/FFFFFF?text=${encodeURIComponent(text)}`,
-      iconSize: [25, 25],
-      iconAnchor: [12, 25],
-      popupAnchor: [0, -25],
-      className: 'custom-icon'
-    });
-  } catch (error) {
-    console.error('Error creating custom icon:', error);
-    return DefaultIcon; // Fallback to default icon
-  }
-};
-
-// Create custom icons with fallback to default
-const driverBaseIcon = createCustomIcon('0000FF', 'נהג');
-const rideOriginIcon = createCustomIcon('008000', 'מוצא');
-const rideDestinationIcon = createCustomIcon('FF0000', 'יעד');
-// --- END: ROBUST FIX for default Leaflet icon loading issues ---
+L.Marker.prototype.options.icon = defaultIcon;
 
 // Map updater component
 const ScheduleMapUpdater: React.FC<{ mapElements: any[] }> = ({ mapElements }) => {
@@ -71,10 +48,10 @@ const ScheduleMapUpdater: React.FC<{ mapElements: any[] }> = ({ mapElements }) =
 };
 
 const DriverSchedulePage: React.FC = () => {
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>(
     new Date().toLocaleString('en-US', { weekday: 'long' })
   );
@@ -115,13 +92,11 @@ const DriverSchedulePage: React.FC = () => {
 
     const elements: any[] = [];
     
-    // Add driver's base location
-    if (selectedDriver.base_address_coords) {
-      elements.push(selectedDriver.base_address_coords);
-    }
+    // Add driver's location
+    elements.push([selectedDriver.latitude, selectedDriver.longitude]);
 
     // Add ride locations
-    const daySchedule = selectedDriver.schedule[selectedDay] || [];
+    const daySchedule = selectedDriver.schedule?.[selectedDay] || [];
     daySchedule.forEach((ride: any) => {
       if (ride.origin_coords) elements.push(ride.origin_coords);
       if (ride.destination_coords) elements.push(ride.destination_coords);
@@ -140,65 +115,111 @@ const DriverSchedulePage: React.FC = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">שגיאה</h2>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-4 space-y-6" dir="rtl">
-      <h1 className="text-3xl font-bold text-right mb-6">ניהול לוחות זמנים לנהגים</h1>
-
-      {isLoading && (
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <div className="h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-border/30 p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <SidebarTrigger />
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="text-sm">
+              <Car className="h-4 w-4 ml-1" />
+              {drivers.length} נהגים במערכת
+            </Badge>
+            <Badge variant="outline" className="text-sm">
+              <MapPin className="h-4 w-4 ml-1" />
+              {selectedDriver ? 'נהג נבחר' : 'לא נבחר נהג'}
+            </Badge>
+          </div>
         </div>
-      )}
+      </header>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600">
-          {error}
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            בחר נהג:
-          </label>
-          <select
-            className="w-full p-2 border rounded-md"
-            value={selectedDriver?.id || ''}
-            onChange={(e) => {
-              const driver = drivers.find(d => d.id === e.target.value);
-              setSelectedDriver(driver || null);
-            }}
-            disabled={drivers.length === 0}
-          >
-            {drivers.map(driver => (
-              <option key={driver.id} value={driver.id}>
-                {driver.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedDriver && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Driver Info & Day Selector */}
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">
-                  פרטי נהג: {selectedDriver.name}
-                </h2>
-                <div className="space-y-2">
-                  <p><strong>כתובת בסיס:</strong> {selectedDriver.base_address}</p>
-                  <p><strong>סטטוס:</strong> {selectedDriver.is_available ? 'זמין' : 'לא זמין'}</p>
-                  <p><strong>שעות עבודה מקסימליות:</strong> {selectedDriver.max_daily_hours}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  בחר יום:
-                </label>
+      {/* Main Content */}
+      <div className="flex-1 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Driver Selection and Info */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="bg-gradient-to-l from-primary/5 to-transparent border-b border-border/30">
+                <CardTitle className="text-right flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Car className="h-5 w-5 text-primary" />
+                  </div>
+                  בחירת נהג
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
                 <select
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md text-right"
+                  value={selectedDriver?.driver_id || ''}
+                  onChange={(e) => {
+                    const driver = drivers.find(d => d.driver_id === e.target.value);
+                    setSelectedDriver(driver || null);
+                  }}
+                >
+                  <option value="">בחר נהג</option>
+                  {drivers.map((driver) => (
+                    <option key={driver.driver_id} value={driver.driver_id}>
+                      {driver.driver_name}
+                    </option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
+
+            {selectedDriver && (
+              <Card>
+                <CardHeader className="bg-gradient-to-l from-primary/5 to-transparent border-b border-border/30">
+                  <CardTitle className="text-right flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    פרטי נהג
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <p><strong>שם:</strong> {selectedDriver.driver_name}</p>
+                    <p><strong>מספר נהג:</strong> {selectedDriver.driver_id}</p>
+                    <p><strong>סטטוס:</strong> {selectedDriver.status}</p>
+                    <p><strong>כתובת:</strong> {selectedDriver.address}</p>
+                    <p><strong>סוג רכב:</strong> {selectedDriver.vehicle?.type}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader className="bg-gradient-to-l from-primary/5 to-transparent border-b border-border/30">
+                <CardTitle className="text-right flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  בחירת יום
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <select
+                  className="w-full p-2 border rounded-md text-right"
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(e.target.value)}
                 >
@@ -208,108 +229,59 @@ const DriverSchedulePage: React.FC = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-            </div>
-
-            {/* Map Display with error handling */}
-            <div className="bg-white p-4 rounded-lg shadow">
-              <MapContainer
-                center={selectedDriver.base_address_coords || [31.77, 35.21]}
-                zoom={8}
-                style={{ height: '400px', width: '100%' }}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <ScheduleMapUpdater mapElements={getMapElements()} />
-
-                {/* Driver Base Marker with error handling */}
-                {selectedDriver.base_address_coords && (
-                  <Marker
-                    position={selectedDriver.base_address_coords}
-                    icon={driverBaseIcon}
-                  >
-                    <L.Popup>
-                      <strong>נהג:</strong> {selectedDriver.name}<br />
-                      <strong>כתובת בסיס:</strong> {selectedDriver.base_address}
-                    </L.Popup>
-                  </Marker>
-                )}
-
-                {/* Ride Markers and Polylines with error handling */}
-                {(selectedDriver.schedule[selectedDay] || []).map((ride: any, index: number) => (
-                  <React.Fragment key={ride.ride_id}>
-                    {ride.origin_coords && (
-                      <Marker 
-                        position={ride.origin_coords}
-                        icon={rideOriginIcon}
-                      >
-                        <L.Popup>
-                          <strong>מוצא:</strong> {ride.origin_address}<br />
-                          <strong>זמן התחלה:</strong> {formatTime(ride.start_time_iso)}
-                        </L.Popup>
-                      </Marker>
-                    )}
-                    {ride.destination_coords && (
-                      <Marker 
-                        position={ride.destination_coords}
-                        icon={rideDestinationIcon}
-                      >
-                        <L.Popup>
-                          <strong>יעד:</strong> {ride.destination_address}<br />
-                          <strong>זמן סיום:</strong> {formatTime(ride.end_time_iso)}
-                        </L.Popup>
-                      </Marker>
-                    )}
-                    {ride.ride_polyline_coords && (
-                      <Polyline
-                        positions={ride.ride_polyline_coords}
-                        color="purple"
-                        weight={4}
-                      >
-                        <L.Popup>
-                          <strong>מסלול נסיעה:</strong> {ride.origin_address} → {ride.destination_address}
-                        </L.Popup>
-                      </Polyline>
-                    )}
-                  </React.Fragment>
-                ))}
-              </MapContainer>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
 
-        {/* Schedule Details */}
-        {selectedDriver && (
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">
-              לוח זמנים ליום {getHebrewDayName(selectedDay)}:
-            </h2>
-            {(selectedDriver.schedule[selectedDay] || []).length > 0 ? (
-              <div className="space-y-4">
-                {selectedDriver.schedule[selectedDay].map((ride: any) => (
-                  <div key={ride.ride_id} className="border rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p><strong>מזהה נסיעה:</strong> {ride.ride_id}</p>
-                        <p><strong>מוצא:</strong> {ride.origin_address}</p>
-                        <p><strong>יעד:</strong> {ride.destination_address}</p>
-                      </div>
-                      <div>
-                        <p><strong>זמן התחלה:</strong> {formatTime(ride.start_time_iso)}</p>
-                        <p><strong>זמן סיום:</strong> {formatTime(ride.end_time_iso)}</p>
-                        <p><strong>משך נסיעה:</strong> {ride.duration_minutes} דקות</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          {/* Map Display */}
+          <Card>
+            <CardHeader className="bg-gradient-to-l from-primary/5 to-transparent border-b border-border/30">
+              <CardTitle className="text-right flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <MapPin className="h-5 w-5 text-primary" />
+                </div>
+                מפת מסלול
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="h-[600px]">
+                <MapContainer
+                  center={selectedDriver ? [selectedDriver.latitude, selectedDriver.longitude] : [31.77, 35.21]}
+                  zoom={8}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {selectedDriver && (
+                    <Marker
+                      position={[selectedDriver.latitude, selectedDriver.longitude]}
+                      icon={L.divIcon({
+                        html: `
+                          <div class="driver-marker ${selectedDriver.status === 'available' ? 'bg-green-500' : 'bg-yellow-500'} 
+                                      text-white rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold shadow-lg border-2 border-white">
+                            ${selectedDriver.driver_name.charAt(0)}
+                          </div>
+                        `,
+                        className: 'custom-div-icon',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                      })}
+                    >
+                      <Popup>
+                        <div dir="rtl" className="text-right">
+                          <strong>נהג:</strong> {selectedDriver.driver_name}<br />
+                          <strong>כתובת:</strong> {selectedDriver.address}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
               </div>
-            ) : (
-              <p className="text-gray-500">אין נסיעות מתוכננות ליום זה</p>
-            )}
-          </div>
-        )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

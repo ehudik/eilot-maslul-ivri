@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,122 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AlertCircle, MapPin, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-// Separate Map Component
-const MapComponent = ({ rideDetails, suggestedDrivers, selectedDriver, showDriverRoute }: any) => {
-  const [map, setMap] = useState<any>(null);
-
-  useEffect(() => {
-    // Dynamically import Leaflet only on client side
-    const initMap = async () => {
-      const L = await import('leaflet');
-      await import('leaflet/dist/leaflet.css');
-
-      // Fix Leaflet default icon
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-      });
-
-      if (!map && rideDetails) {
-        const newMap = L.map('map').setView(
-          rideDetails.origin_coords || [31.77, 35.21],
-          8
-        );
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(newMap);
-
-        setMap(newMap);
-      }
-    };
-
-    initMap();
-
-    return () => {
-      if (map) {
-        map.remove();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!map || !rideDetails) return;
-
-    // Clear existing layers
-    map.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
-        map.removeLayer(layer);
-      }
-    });
-
-    // Add origin marker
-    if (rideDetails.origin_coords) {
-      L.marker(rideDetails.origin_coords)
-        .addTo(map)
-        .bindPopup('מוצא');
-    }
-
-    // Add destination marker
-    if (rideDetails.destination_coords) {
-      L.marker(rideDetails.destination_coords)
-        .addTo(map)
-        .bindPopup('יעד');
-    }
-
-    // Add main route
-    if (rideDetails.ride_polyline_coords?.length > 0) {
-      L.polyline(rideDetails.ride_polyline_coords, {
-        color: 'blue',
-        weight: 5
-      }).addTo(map);
-    }
-
-    // Add selected driver's route if applicable
-    if (showDriverRoute && selectedDriver?.base_address_coords) {
-      // Add driver marker
-      L.marker(selectedDriver.base_address_coords)
-        .addTo(map)
-        .bindPopup(`נהג: ${selectedDriver.driver_name}`);
-
-      // Add driver's route to pickup
-      if (rideDetails.origin_coords) {
-        L.polyline([
-          selectedDriver.base_address_coords,
-          rideDetails.origin_coords
-        ], {
-          color: 'green',
-          weight: 3,
-          dashArray: '5, 10'
-        }).addTo(map);
-      }
-    } else {
-      // Add all driver markers if no driver is selected
-      suggestedDrivers?.forEach((driver: any) => {
-        if (driver.base_address_coords) {
-          L.marker(driver.base_address_coords)
-            .addTo(map)
-            .bindPopup(`נהג: ${driver.driver_name}`);
-        }
-      });
-    }
-
-    // Fit bounds
-    const bounds = L.latLngBounds([
-      rideDetails.origin_coords,
-      rideDetails.destination_coords,
-      ...(showDriverRoute && selectedDriver?.base_address_coords 
-        ? [selectedDriver.base_address_coords] 
-        : [])
-    ]);
-    map.fitBounds(bounds);
-  }, [map, rideDetails, suggestedDrivers, selectedDriver, showDriverRoute]);
-
-  return <div id="map" style={{ height: '400px', width: '100%' }} />;
-};
+import { MapComponent, MapComponentRef, Driver, RideDetails } from '@/components/MapComponent';
 
 const RequestRidePage: React.FC = () => {
   const [originAddress, setOriginAddress] = useState('');
@@ -135,6 +20,7 @@ const RequestRidePage: React.FC = () => {
   const [requestResults, setRequestResults] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDriverForMap, setSelectedDriverForMap] = useState<Driver | null>(null);
 
   // Add these new states for autocomplete
   const [originSuggestions, setOriginSuggestions] = useState<string[]>([]);
@@ -142,8 +28,7 @@ const RequestRidePage: React.FC = () => {
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
 
-  const [selectedDriver, setSelectedDriver] = useState<any>(null);
-  const [showDriverRoute, setShowDriverRoute] = useState(false);
+  const mapRef = useRef<MapComponentRef>(null);
 
   // Debounce function to limit API calls
   const debounce = (func: Function, wait: number) => {
@@ -261,6 +146,13 @@ const RequestRidePage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Add useEffect for map bounds
+  useEffect(() => {
+    if (requestResults && mapRef.current) {
+      mapRef.current.fitBoundsToContent();
+    }
+  }, [requestResults]);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -395,12 +287,15 @@ const RequestRidePage: React.FC = () => {
               <CardTitle>מפת מסלול</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <MapComponent 
-                rideDetails={requestResults.ride_details}
-                suggestedDrivers={requestResults.suggested_drivers}
-                selectedDriver={selectedDriver}
-                showDriverRoute={showDriverRoute}
-              />
+              <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-200 shadow-md">
+                <MapComponent 
+                  ref={mapRef}
+                  rideDetails={requestResults.ride_details}
+                  drivers={requestResults.suggested_drivers}
+                  selectedDriver={selectedDriverForMap}
+                  showRouteMode={true}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -411,17 +306,14 @@ const RequestRidePage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {requestResults.suggested_drivers?.map((driver: any) => (
+                {requestResults.suggested_drivers?.map((driver: Driver) => (
                   <div 
                     key={driver.driver_id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all
-                      ${selectedDriver?.driver_id === driver.driver_id 
+                      ${selectedDriverForMap?.driver_id === driver.driver_id 
                         ? 'border-primary bg-primary/5' 
                         : 'border-border/30 hover:border-primary/50'}`}
-                    onClick={() => {
-                      setSelectedDriver(driver);
-                      setShowDriverRoute(true);
-                    }}
+                    onClick={() => setSelectedDriverForMap(driver)}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2">
@@ -446,13 +338,13 @@ const RequestRidePage: React.FC = () => {
 
                     <Button 
                       className="w-full mt-3"
-                      variant={selectedDriver?.driver_id === driver.driver_id ? "default" : "outline"}
+                      variant={selectedDriverForMap?.driver_id === driver.driver_id ? "default" : "outline"}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Handle driver assignment
+                        setSelectedDriverForMap(driver);
                       }}
                     >
-                      {selectedDriver?.driver_id === driver.driver_id 
+                      {selectedDriverForMap?.driver_id === driver.driver_id 
                         ? 'נהג נבחר' 
                         : 'בחר נהג'}
                     </Button>
