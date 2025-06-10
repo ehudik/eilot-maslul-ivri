@@ -17,6 +17,7 @@ const TripControlCenter = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [driverFilter, setDriverFilter] = useState('all');
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState('all');
 
   // Filter trips based on search and filters
   const filteredTrips = useMemo(() => {
@@ -30,19 +31,45 @@ const TripControlCenter = () => {
 
       const matchesStatus = statusFilter === 'all' || trip.status === statusFilter;
       const matchesDriver = driverFilter === 'all' || trip.driver_name === driverFilter;
+      const matchesVehicle = vehicleTypeFilter === 'all' || trip.vehicle_type === vehicleTypeFilter;
 
-      return matchesSearch && matchesStatus && matchesDriver;
+      // Date filter logic
+      let matchesDate = true;
+      if (dateFilter !== 'all') {
+        const tripDate = new Date(trip.planned_start_time);
+        const today = new Date();
+        
+        switch (dateFilter) {
+          case 'today':
+            matchesDate = tripDate.toDateString() === today.toDateString();
+            break;
+          case 'tomorrow':
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            matchesDate = tripDate.toDateString() === tomorrow.toDateString();
+            break;
+          case 'week':
+            const weekFromNow = new Date(today);
+            weekFromNow.setDate(weekFromNow.getDate() + 7);
+            matchesDate = tripDate >= today && tripDate <= weekFromNow;
+            break;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDriver && matchesVehicle && matchesDate;
     });
-  }, [searchTerm, statusFilter, dateFilter, driverFilter]);
+  }, [searchTerm, statusFilter, dateFilter, driverFilter, vehicleTypeFilter]);
 
   // Calculate KPIs
   const totalTrips = mockTrips.length;
   const activeTrips = mockTrips.filter(t => t.status === 'active').length;
   const completedTripsToday = mockTrips.filter(t => t.status === 'completed').length;
   const openTrips = mockTrips.filter(t => t.status === 'open').length;
+  const plannedTrips = mockTrips.filter(t => t.status === 'planned').length;
   const totalRevenue = mockTrips.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.price, 0);
 
-  const uniqueDrivers = Array.from(new Set(mockTrips.map(t => t.driver_name)));
+  const uniqueDrivers = Array.from(new Set(mockTrips.map(t => t.driver_name).filter(name => name)));
+  const uniqueVehicleTypes = Array.from(new Set(mockTrips.map(t => t.vehicle_type).filter(type => type)));
 
   const handleTripClick = (tripId: string) => {
     navigate(`/trip-details/${tripId}`);
@@ -54,6 +81,23 @@ const TripControlCenter = () => {
 
   const handleCustomerClick = (customerId: string) => {
     navigate(`/customer-profile/${customerId}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('he-IL', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('he-IL', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   return (
@@ -88,7 +132,7 @@ const TripControlCenter = () => {
 
       {/* KPI Cards */}
       <div className="p-6 pb-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
           <Card className="enhanced-card border-l-4 border-l-blue-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -131,12 +175,26 @@ const TripControlCenter = () => {
             </CardContent>
           </Card>
 
+          <Card className="enhanced-card border-l-4 border-l-yellow-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-yellow-600">{plannedTrips}</div>
+                  <div className="text-sm text-muted-foreground">נסיעות מתוכננות</div>
+                </div>
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-yellow-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="enhanced-card border-l-4 border-l-purple-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-2xl font-bold text-purple-600">{completedTripsToday}</div>
-                  <div className="text-sm text-muted-foreground">הושלמו היום</div>
+                  <div className="text-sm text-muted-foreground">הושלמו</div>
                 </div>
                 <div className="bg-purple-100 p-2 rounded-full">
                   <Users className="h-5 w-5 text-purple-600" />
@@ -149,8 +207,8 @@ const TripControlCenter = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-2xl font-bold text-indigo-600">₪{totalRevenue}</div>
-                  <div className="text-sm text-muted-foreground">הכנסות היום</div>
+                  <div className="text-2xl font-bold text-indigo-600">₪{totalRevenue.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">הכנסות</div>
                 </div>
                 <div className="bg-indigo-100 p-2 rounded-full">
                   <TrendingUp className="h-5 w-5 text-indigo-600" />
@@ -171,7 +229,7 @@ const TripControlCenter = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -209,6 +267,18 @@ const TripControlCenter = () => {
                 </SelectContent>
               </Select>
 
+              <Select value={vehicleTypeFilter} onValueChange={setVehicleTypeFilter}>
+                <SelectTrigger className="modern-input">
+                  <SelectValue placeholder="סוג רכב" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">כל סוגי הרכבים</SelectItem>
+                  {uniqueVehicleTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={dateFilter} onValueChange={setDateFilter}>
                 <SelectTrigger className="modern-input">
                   <SelectValue placeholder="תאריך" />
@@ -216,14 +286,13 @@ const TripControlCenter = () => {
                 <SelectContent>
                   <SelectItem value="all">כל התאריכים</SelectItem>
                   <SelectItem value="today">היום</SelectItem>
-                  <SelectItem value="yesterday">אתמול</SelectItem>
+                  <SelectItem value="tomorrow">מחר</SelectItem>
                   <SelectItem value="week">השבוע</SelectItem>
-                  <SelectItem value="month">החודש</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {(searchTerm || statusFilter !== 'all' || driverFilter !== 'all' || dateFilter !== 'all') && (
+            {(searchTerm || statusFilter !== 'all' || driverFilter !== 'all' || dateFilter !== 'all' || vehicleTypeFilter !== 'all') && (
               <div className="flex items-center gap-2 justify-end">
                 <span className="text-sm text-muted-foreground">
                   מציג {filteredTrips.length} מתוך {totalTrips} נסיעות
@@ -236,6 +305,7 @@ const TripControlCenter = () => {
                     setStatusFilter('all');
                     setDriverFilter('all');
                     setDateFilter('all');
+                    setVehicleTypeFilter('all');
                   }}
                   className="enhanced-button"
                 >
@@ -259,6 +329,7 @@ const TripControlCenter = () => {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-right">מספר נסיעה</TableHead>
+                    <TableHead className="text-right">תאריך</TableHead>
                     <TableHead className="text-right">נהג</TableHead>
                     <TableHead className="text-right">לקוח</TableHead>
                     <TableHead className="text-right">סטטוס</TableHead>
@@ -267,11 +338,13 @@ const TripControlCenter = () => {
                     <TableHead className="text-right">מוצא</TableHead>
                     <TableHead className="text-right">יעד</TableHead>
                     <TableHead className="text-right">מרחק</TableHead>
+                    <TableHead className="text-right">נוסעים</TableHead>
+                    <TableHead className="text-right">סוג רכב</TableHead>
                     <TableHead className="text-right">מחיר</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTrips.map((trip) => (
+                  {filteredTrips.slice(0, 100).map((trip) => (
                     <TableRow key={trip.trip_id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
                         <Button 
@@ -281,15 +354,27 @@ const TripControlCenter = () => {
                         >
                           {trip.trip_id}
                         </Button>
+                        {trip.is_regular && (
+                          <div className="text-xs text-muted-foreground">
+                            {trip.regular_type === 'pickup' ? 'איסוף קבוע' : 'פיזור קבוע'}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {formatDate(trip.planned_start_time)}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="link" 
-                          className="p-0 h-auto text-foreground hover:text-primary hover:underline"
-                          onClick={() => handleDriverClick(trip.driver_id)}
-                        >
-                          {trip.driver_name}
-                        </Button>
+                        {trip.driver_name ? (
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto text-foreground hover:text-primary hover:underline"
+                            onClick={() => handleDriverClick(trip.driver_id)}
+                          >
+                            {trip.driver_name}
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">לא שובץ</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Button 
@@ -306,16 +391,10 @@ const TripControlCenter = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(trip.planned_start_time).toLocaleTimeString('he-IL', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {formatTime(trip.planned_start_time)}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(trip.planned_end_time).toLocaleTimeString('he-IL', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {formatTime(trip.planned_end_time)}
                       </TableCell>
                       <TableCell className="text-sm max-w-32 truncate" title={trip.origin_address}>
                         {trip.origin_address}
@@ -325,6 +404,12 @@ const TripControlCenter = () => {
                       </TableCell>
                       <TableCell className="text-sm">
                         {trip.distance_km} ק"מ
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {trip.num_passengers}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {trip.vehicle_type || 'לא נבחר'}
                       </TableCell>
                       <TableCell className="text-sm font-semibold">
                         ₪{trip.price}

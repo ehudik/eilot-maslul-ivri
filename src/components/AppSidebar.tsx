@@ -60,15 +60,15 @@ export function AppSidebar() {
   const location = useLocation()
 
   return (
-    <Sidebar className="border-l">
+    <Sidebar side="right" className="border-r">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-lg">
-            <Car className="h-6 w-6 text-primary-foreground" />
-          </div>
           <div className="text-right">
             <h2 className="text-xl font-bold">FleetPro</h2>
             <p className="text-sm text-muted-foreground">מערכת ניהול צי</p>
+          </div>
+          <div className="bg-primary p-2 rounded-lg">
+            <Car className="h-6 w-6 text-primary-foreground" />
           </div>
         </div>
       </SidebarHeader>

@@ -22,17 +22,17 @@ import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
-// Root layout component
+// Root layout component with sidebar on the right
 const RootLayout = () => {
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen overflow-hidden">
-        <AppSidebar />
+      <div className="flex h-screen w-screen overflow-hidden" dir="rtl">
         <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-muted/20">
           <div className="h-full w-full">
             <Outlet />
           </div>
         </main>
+        <AppSidebar />
       </div>
     </SidebarProvider>
   );
