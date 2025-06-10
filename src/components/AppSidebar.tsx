@@ -1,8 +1,10 @@
-import { Link, useLocation } from "react-router-dom"; // שינוי: חזרה ל-react-router-dom
-import { MapPin, Route, Users, FileText, ClipboardList, BarChart, Car } from "lucide-react";
+
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -10,83 +12,108 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
+import { 
+  Home, 
+  Map, 
+  Users, 
+  FileText, 
+  BarChart3, 
+  Car,
+  LogIn,
+  Settings,
+  HelpCircle
+} from "lucide-react"
 
 const menuItems = [
   {
-    title: "מפת נהגים",
+    title: "עמוד הבית",
     url: "/",
-    icon: MapPin,
-    description: "מעקב מיקום בזמן אמת"
+    icon: Home,
   },
   {
-    title: "בקשת נסיעה חדשה",
-    url: "/RequestRide", // נשאר /RequestRide כפי ששם הקובץ ב-pages
-    icon: Car,
-    description: "הזמנת נסיעה חדשה"
-  },
-  {
-    title: "שיבוץ משימות",
-    url: "/TaskAssignment", // נשאר /TaskAssignment כפי ששם הקובץ ב-pages
-    icon: ClipboardList,
-    description: "אופטימיזציה חכמה"
+    title: "לוח בקרה",
+    url: "/driver-map",
+    icon: Map,
   },
   {
     title: "ניהול נהגים",
-    url: "/DriverManagement", // נשאר /DriverManagement כפי ששם הקובץ ב-pages
+    url: "/driver-management",
     icon: Users,
-    description: "תכנון לוח זמנים"
   },
   {
     title: "דוחות",
-    url: "/Reports", // נשאר /Reports כפי ששם הקובץ ב-pages
+    url: "/reports",
     icon: FileText,
-    description: "סיכומים ונתונים"
   },
   {
     title: "ניתוח ביצועים",
-    url: "/PerformanceAnalytics", // נשאר /PerformanceAnalytics כפי ששם הקובץ ב-pages
-    icon: BarChart,
-    description: "מדדי ביצועים"
+    url: "/performance-analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "בקשת נסיעה",
+    url: "/request-ride",
+    icon: Car,
+  },
+];
+
+const bottomMenuItems = [
+  {
+    title: "התחברות",
+    url: "/login",
+    icon: LogIn,
+  },
+  {
+    title: "הגדרות",
+    url: "/settings",
+    icon: Settings,
+  },
+  {
+    title: "עזרה",
+    url: "/help",
+    icon: HelpCircle,
   },
 ];
 
 export function AppSidebar() {
-  const location = useLocation(); // שינוי: חזרה ל-useLocation מ-react-router-dom
+  const location = useLocation();
+
+  const isActive = (url: string) => {
+    if (url === "/" && location.pathname === "/") return true;
+    if (url !== "/" && location.pathname.startsWith(url)) return true;
+    return false;
+  };
 
   return (
-    <Sidebar side="right" className="border-r border-sidebar-border bg-sidebar-custom shadow-xl" dir="rtl">
-      <SidebarHeader className="border-b border-sidebar-border p-6 bg-gradient-to-b from-sidebar-header to-sidebar-custom">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 text-white shadow-lg">
-            <MapPin className="h-6 w-6" />
+    <Sidebar className="border-l border-border/40">
+      <SidebarHeader className="p-6 border-b border-border/40">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Car className="h-6 w-6 text-primary" />
           </div>
-          <div className="grid flex-1 text-right text-sm leading-tight">
-            <span className="truncate font-bold text-lg text-sidebar-foreground">מערכת ניהול צי</span>
-            <span className="truncate text-xs text-sidebar-muted">נהגים ומסלולים מתקדמים</span>
+          <div className="text-right">
+            <h2 className="text-lg font-semibold text-foreground">מערכת ניהול צי</h2>
+            <p className="text-sm text-muted-foreground">מוני סיטון בע״מ</p>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="bg-sidebar-custom p-2">
+      
+      <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-right text-sidebar-foreground font-semibold mb-4 px-3">תפריט ראשי</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-right text-muted-foreground">תפריט ראשי</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-2">
+            <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
-                    isActive={location.pathname === item.url} // חזרה ל-location.pathname
-                    className="w-full justify-end hover:bg-sidebar-hover/80 data-[active=true]:bg-gradient-to-l data-[active=true]:from-sidebar-active data-[active=true]:to-sidebar-active/80 data-[active=true]:text-gray-900 rounded-xl p-4 transition-all duration-300 hover:shadow-md data-[active=true]:shadow-lg"
+                    isActive={isActive(item.url)}
+                    className="text-right hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
-                    <Link to={item.url} className="flex items-center gap-4 text-sidebar-foreground hover:text-white data-[active=true]:text-gray-900 w-full">
-                      <div className="text-right flex-1">
-                        <div className="font-semibold">{item.title}</div>
-                        <div className="text-xs opacity-75">{item.description}</div>
-                      </div>
-                      <div className="bg-white/10 p-2 rounded-lg data-[active=true]:bg-gray-900/10">
-                        <item.icon className="h-5 w-5" />
-                      </div>
+                    <Link to={item.url} className="flex items-center gap-3">
+                      <item.icon className="h-5 w-5" />
+                      <span className="text-sm font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -95,6 +122,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-border/40">
+        <SidebarMenu>
+          {bottomMenuItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton 
+                asChild 
+                isActive={isActive(item.url)}
+                className="text-right hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <Link to={item.url} className="flex items-center gap-3">
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-xs">{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
-  );
+  )
 }

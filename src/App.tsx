@@ -15,6 +15,7 @@ import PerformanceAnalytics from "./pages/PerformanceAnalytics";
 import RequestRide from "./pages/RequestRide";
 import NotFound from "./pages/NotFound";
 import HomePage from "./pages/HomePage";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,15 @@ const RootLayout = () => {
         </main>
       </div>
     </SidebarProvider>
+  );
+};
+
+// Auth layout for login/register pages
+const AuthLayout = () => {
+  return (
+    <div className="h-screen w-screen">
+      <Outlet />
+    </div>
   );
 };
 
@@ -82,12 +92,26 @@ const router = createBrowserRouter([
       {
         path: "/request-ride",
         element: <RequestRide />
-      },
-      {
-        path: "*",
-        element: <NotFound />
       }
     ]
+  },
+  {
+    path: "/auth",
+    element: <AuthLayout />,
+    children: [
+      {
+        path: "login",
+        element: <Login />
+      }
+    ]
+  },
+  {
+    path: "/login",
+    element: <Login />
+  },
+  {
+    path: "*",
+    element: <NotFound />
   }
 ]);
 
