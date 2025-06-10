@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,19 +48,24 @@ const DriverManagement = () => {
   });
 
   const getTaskPosition = (startTime: string) => {
-    const [hours] = startTime.split(':').map(Number);
-    const position = ((hours - 6) / 18) * 100;
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startHour = hours + minutes / 60;
+    // Position relative to 6:00 AM start
+    const position = ((startHour - 6) / 18) * 100;
     return Math.max(0, Math.min(100, position));
   };
 
   const getTaskWidth = (startTime: string, endTime: string) => {
     const [startHours, startMinutes] = startTime.split(':').map(Number);
     const [endHours, endMinutes] = endTime.split(':').map(Number);
+    
     const startTotal = startHours + startMinutes / 60;
     const endTotal = endHours + endMinutes / 60;
-    const duration = endTotal - startTotal;
-    const width = (duration / 18) * 100;
-    return Math.max(5, Math.min(100, width));
+    const durationHours = endTotal - startTotal;
+    
+    // Width as percentage of the 18-hour timeline
+    const width = (durationHours / 18) * 100;
+    return Math.max(2, Math.min(50, width)); // Minimum 2%, maximum 50%
   };
 
   if (isLoading) {
@@ -149,13 +155,13 @@ const DriverManagement = () => {
                                 key={task.task_id}
                                 className="absolute top-2 bottom-2 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
                                 style={{
-                                  left: `${getTaskPosition(task.start_time)}%`,
-                                  width: `${(task.duration_minutes || 60) / 60}%`,
+                                  right: `${100 - getTaskPosition(task.start_time) - getTaskWidth(task.start_time, task.end_time)}%`,
+                                  width: `${getTaskWidth(task.start_time, task.end_time)}%`,
                                 }}
                               >
-                                <div className="p-2 text-xs">
-                                  <div className="font-medium">{task.task_name}</div>
-                                  <div className="text-muted-foreground">
+                                <div className="p-2 text-xs h-full flex flex-col justify-center">
+                                  <div className="font-medium truncate">{task.task_name}</div>
+                                  <div className="text-muted-foreground text-xs">
                                     {task.start_time} - {task.end_time}
                                   </div>
                                 </div>
